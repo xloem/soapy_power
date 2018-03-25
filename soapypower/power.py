@@ -38,6 +38,22 @@ class SoapyPower:
             force_sample_rate=force_sample_rate, force_bandwidth=force_bandwidth
         )
 
+        self._args = {
+            'device' : {
+                'soapy_args' : soapy_args,
+                'sample_rate' : sample_rate,
+                'bandwidth' : bandwidth,
+                'corr' : corr,
+                'gain' : gain,
+                'auto_gain' : auto_gain,
+                'channel' : channel,
+                'antenna' : antenna,
+                'settings' : settings,
+                'force_sample_rate' : force_sample_rate,
+                'force_bandwidth' : force_bandwidth
+            }
+        }
+
         self._output = output
         self._output_format = output_format
 
@@ -192,7 +208,7 @@ class SoapyPower:
         self._psd = psd.PSD(bins, self.device.sample_rate, fft_window=fft_window, fft_overlap=fft_overlap,
                             crop_factor=crop_factor, log_scale=log_scale, remove_dc=remove_dc, detrend=detrend,
                             lnb_lo=lnb_lo, max_threads=max_threads, max_queue_size=max_queue_size)
-        self._writer = writer.formats[self._output_format](self._output)
+        self._writer = writer.formats[self._output_format](self._args, self.device.hardware, self._output)
 
     def stop(self):
         """Stop streaming samples from device and delete samples buffer"""
@@ -281,6 +297,29 @@ class SoapyPower:
             log_scale=log_scale, remove_dc=remove_dc, detrend=detrend, lnb_lo=lnb_lo, tune_delay=tune_delay,
             reset_stream=reset_stream, max_threads=max_threads, max_queue_size=max_queue_size
         )
+
+        self._args['sweep'] = {
+            'min_freq' : min_freq,
+            'max_freq' : max_freq,
+            'bins' : bins,
+            'repeats' : repeats,
+            'runs' : runs,
+            'time_limit' : time_limit,
+            'overlap' : overlap,
+            'fft_window' : fft_window,
+            'fft_overlap' : fft_overlap,
+            'crop' : crop,
+            'log_scale' : log_scale,
+            'remove_dc' : remove_dc,
+            'detrend' : detrend,
+            'lnb_lo' : lnb_lo,
+            'tune_delay' : tune_delay,
+            'reset_stream' : reset_stream,
+            'base_buffer_size' : base_buffer_size,
+            'max_buffer_size' : max_buffer_size,
+            'max_threads' : max_threads,
+            'max_queue_size' : max_queue_size
+        }
 
         try:
             freq_list = self.freq_plan(min_freq - lnb_lo, max_freq - lnb_lo, bins, overlap)
