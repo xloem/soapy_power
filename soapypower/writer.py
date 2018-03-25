@@ -94,10 +94,7 @@ class SoapyPowerBinFormat:
         if magic != self.magic_extended:
             # Try old magic string
             extended = False
-            magic = f.read(len(self.magic))
-            if not magic:
-                return None
-            if magic != self.magic:
+            if magic[:len(self.magic)] != self.magic:
                 raise ValueError('Magic bytes not found! Read data: {}'.format(magic))
 
         device_info = None
