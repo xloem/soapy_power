@@ -105,21 +105,26 @@ class SoapyPowerBinFormat:
             device_info = self.__read_string(f)
 
             # Settings
+            def fix_settings(set):
+                if set is None:
+                    return None
+                return dict(map(lambda s: map(lambda p: p.strip(), s.split('=')), set.split(',')))
+
             device_settings = self.device_header_struct.unpack(f.read(self.device_header_struct.size))
             device_header = self.device_header._make(
                 chain(
                     device_settings,
-                    [self.__read_string(f), self.__read_string(f), self.__read_string(f)]
+                    [self.__read_string(f), fix_settings(self.__read_string(f)), self.__read_string(f)]
                 )
             )
 
+            # Sweep info header
             def read_time_limit():
                 has_time_limit, time_limit = struct.unpack('<?d', f.read(9))
                 if not has_time_limit:
                     return None
                 return time_limit
 
-            # Sweep info header
             sweep_settings = self.sweep_header_struct.unpack(f.read(self.sweep_header_struct.size))
             sweep_header = self.sweep_header._make(
                 chain(
