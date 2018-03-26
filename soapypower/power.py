@@ -208,7 +208,9 @@ class SoapyPower:
         self._psd = psd.PSD(bins, self.device.sample_rate, fft_window=fft_window, fft_overlap=fft_overlap,
                             crop_factor=crop_factor, log_scale=log_scale, remove_dc=remove_dc, detrend=detrend,
                             lnb_lo=lnb_lo, max_threads=max_threads, max_queue_size=max_queue_size)
-        self._writer = writer.formats[self._output_format](self._args, self.device.hardware, self._output)
+
+        device_info = simplesoapy.detect_devices(self._args['device']['soapy_args'], True)[0]
+        self._writer = writer.formats[self._output_format](self._args, device_info, self._output)
 
     def stop(self):
         """Stop streaming samples from device and delete samples buffer"""
