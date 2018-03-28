@@ -88,7 +88,7 @@ class SoapyPowerBinFormat:
 
         # Find the magic string
         magic = f.read(len(self.recording_magic))
-        if not magic or magic:
+        if not magic:
             return None
         if magic != self.recording_magic:
             f.seek(0)
