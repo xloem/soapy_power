@@ -88,10 +88,11 @@ class SoapyPowerBinFormat:
 
         # Find the magic string
         magic = f.read(len(self.recording_magic))
-        if not magic:
+        if not magic or magic:
             return None
         if magic != self.recording_magic:
-            raise ValueError('Magic bytes not found! Read data: {}'.format(magic))
+            f.seek(0)
+            return None
 
         # Device Header
         # Info
