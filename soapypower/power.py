@@ -209,9 +209,6 @@ class SoapyPower:
                             crop_factor=crop_factor, log_scale=log_scale, remove_dc=remove_dc, detrend=detrend,
                             lnb_lo=lnb_lo, max_threads=max_threads, max_queue_size=max_queue_size)
 
-        device_info = simplesoapy.detect_devices(self._args['device']['soapy_args'], True)[0]
-        self._writer = writer.formats[self._output_format](self._args, device_info, self._output)
-
     def stop(self):
         """Stop streaming samples from device and delete samples buffer"""
         if not self.device.is_streaming:
@@ -322,6 +319,9 @@ class SoapyPower:
             'max_threads' : max_threads,
             'max_queue_size' : max_queue_size
         }
+
+        device_info = simplesoapy.detect_devices(self._args['device']['soapy_args'], True)[0]
+        self._writer = writer.formats[self._output_format](self._args, device_info, self._output)
 
         try:
             freq_list = self.freq_plan(min_freq - lnb_lo, max_freq - lnb_lo, bins, overlap)

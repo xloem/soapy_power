@@ -65,12 +65,12 @@ class BaseWriter:
 
 class SoapyPowerBinFormat:
     """Power Spectral Density binary file format"""
-    header_struct = struct.Struct('<BdddddQQ2x')
+    measurement_header_struct = struct.Struct('<BdddddQQ2x')
     device_header_struct = struct.Struct('<dddd?Q??')
     sweep_header_struct = struct.Struct('<ddQQQdd???dd?QQQQ')
 
-    header = collections.namedtuple('Header', 'version time_start time_stop start stop step samples size')
-    magic = b'SDRFF'
+    measurement_header = collections.namedtuple('Header', 'version time_start time_stop start stop step samples size')
+    measurement_magic = b'SDRFF'
     version = 2
 
     device_header = collections.namedtuple('DeviceHeader', 'sample_rate bandwidth corr gain auto_gain '
@@ -81,72 +81,61 @@ class SoapyPowerBinFormat:
                                                          'lnb_lo tune_delay reset_stream base_buffer_size '
                                                          'max_buffer_size max_threads max_queue_size '
                                                          'fft_window detrend time_limit')
-    magic_extended = b'SDRFFX'
+    recording_magic = b'SDRFFX'
 
-    def read(self, f):
-        """Read data from file-like object"""
+    def read_header(self, f):
+        """Read the recording header from file-like object"""
 
-        # Try extended magic string
-        extended = True
-        magic = f.read(len(self.magic_extended))
+        # Find the magic string
+        magic = f.read(len(self.recording_magic))
         if not magic:
             return None
-        if magic != self.magic_extended:
-            # Try old magic string
-            extended = False
-            if magic[:len(self.magic)] != self.magic:
-                raise ValueError('Magic bytes not found! Read data: {}'.format(magic))
+        if magic != self.recording_magic:
+            raise ValueError('Magic bytes not found! Read data: {}'.format(magic))
 
-        device_info = None
-        args = None
-        if extended:
-            # Device Header
-            # Info
-            device_info = self.__read_string(f)
+        # Device Header
+        # Info
+        device_info = self.__read_string(f)
 
-            # Settings
-            def fix_settings(set):
-                if set is None:
-                    return None
-                return dict(map(lambda s: map(lambda p: p.strip(), s.split('=')), set.split(',')))
+        # Settings
+        def fix_settings(set):
+            if set is None:
+                return None
+            return dict(map(lambda s: map(lambda p: p.strip(), s.split('=')), set.split(',')))
 
-            device_settings = self.device_header_struct.unpack(f.read(self.device_header_struct.size))
-            device_header = self.device_header._make(
-                chain(
-                    device_settings,
-                    [self.__read_string(f), fix_settings(self.__read_string(f)), self.__read_string(f)]
-                )
+        device_settings = self.device_header_struct.unpack(f.read(self.device_header_struct.size))
+        device_header = self.device_header._make(
+            chain(
+                device_settings,
+                [self.__read_string(f), fix_settings(self.__read_string(f)), self.__read_string(f)]
             )
-
-            # Sweep info header
-            def read_time_limit():
-                has_time_limit, time_limit = struct.unpack('<?d', f.read(9))
-                if not has_time_limit:
-                    return None
-                return time_limit
-
-            sweep_settings = self.sweep_header_struct.unpack(f.read(self.sweep_header_struct.size))
-            sweep_header = self.sweep_header._make(
-                chain(
-                    sweep_settings,
-                    [self.__read_string(f), self.__read_string(f), read_time_limit()]
-                )
-            )
-
-            args = {
-                'device' : device_header,
-                'sweep' : sweep_header
-            }
-
-        header = self.header._make(
-            self.header_struct.unpack(f.read(self.header_struct.size))
         )
-        pwr_array = numpy.fromstring(f.read(header.size), dtype='float32')
-        return (header, pwr_array, args, device_info)
 
-    def write(self, f, args, device_info, time_start, time_stop, start, stop, step, samples, pwr_array):
-        """Write data to file-like object"""
-        f.write(self.magic_extended)
+        # Sweep info header
+        def read_time_limit():
+            has_time_limit, time_limit = struct.unpack('<?d', f.read(9))
+            if not has_time_limit:
+                return None
+            return time_limit
+
+        sweep_settings = self.sweep_header_struct.unpack(f.read(self.sweep_header_struct.size))
+        sweep_header = self.sweep_header._make(
+            chain(
+                sweep_settings,
+                [self.__read_string(f), self.__read_string(f), read_time_limit()]
+            )
+        )
+
+        args = {
+            'device' : device_header,
+            'sweep' : sweep_header
+        }
+
+        return (args, device_info)
+
+    def write_header(self, f, args, device_info):
+        """Write the recording header to file-like object"""
+        f.write(self.recording_magic)
 
         # Device header
         # Info
@@ -182,17 +171,37 @@ class SoapyPowerBinFormat:
 
         time_limit = sweep['time_limit']
         f.write(struct.pack('<?d', time_limit is not None, 0.0 if time_limit is None else time_limit))
+        f.flush()
 
+    def read(self, f):
+        """Read measurement data from file-like object"""
+
+        # Find the magic string
+        magic = f.read(len(self.measurement_magic))
+        if not magic:
+            return None
+        if magic != self.measurement_magic:
+            raise ValueError('Magic bytes not found! Read data: {}'.format(magic))
+
+        header = self.measurement_header._make(
+            self.measurement_header_struct.unpack(f.read(self.measurement_header_struct.size))
+        )
+        pwr_array = numpy.fromstring(f.read(header.size), dtype='float32')
+        return (header, pwr_array)
+
+    def write(self, f, time_start, time_stop, start, stop, step, samples, pwr_array):
+        """Write measurement data to file-like object"""
         # Measurement header + data
-        f.write(self.header_struct.pack(
+        f.write(self.measurement_magic)
+        f.write(self.measurement_header_struct.pack(
             self.version, time_start, time_stop, start, stop, step, samples, pwr_array.nbytes
         ))
         f.write(pwr_array.tobytes())
         f.flush()
 
-    def header_size(self):
+    def measurement_header_size(self):
         """Return total size of header"""
-        return len(self.magic) + self.header_struct.size
+        return len(self.measurement_magic) + self.measurement_header_struct.size
 
     def __write_string(self, f, str):
         """Write a string (size in bytes followed by data) to the file"""
@@ -216,6 +225,7 @@ class SoapyPowerBinWriter(BaseWriter):
     def __init__(self, args, device_info, output=sys.stdout):
         super().__init__(args, device_info, output=output)
         self.formatter = SoapyPowerBinFormat()
+        self.formatter.write_header(self.output, self._args, self._device_info)
 
     def write(self, psd_data_or_future, time_start, time_stop, samples):
         """Write PSD of one frequency hop"""
@@ -229,8 +239,6 @@ class SoapyPowerBinWriter(BaseWriter):
             step = f_array[1] - f_array[0]
             self.formatter.write(
                 self.output,
-                self._args,
-                self._device_info,
                 time_start.timestamp(),
                 time_stop.timestamp(),
                 f_array[0],
