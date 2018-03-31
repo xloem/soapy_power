@@ -77,7 +77,12 @@ class SoapyPowerBinFormat:
         header = self.header._make(
             self.header_struct.unpack(f.read(self.header_struct.size))
         )
-        pwr_array = numpy.fromstring(f.read(header.size), dtype='float32')
+        read_block = f.read(header.size)
+        pwr_data = read_block
+        while len(pwr_data) < header.size and len(read_block) > 0:
+            read_block = f.read(header.size - len(pwr_data))
+            pwr_data += read_block
+        pwr_array = numpy.fromstring(pwr_data, dtype='float32')
         return (header, pwr_array)
 
     def write(self, f, time_start, time_stop, start, stop, step, samples, pwr_array):
