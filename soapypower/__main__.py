@@ -271,6 +271,8 @@ def setup_argument_parser():
                              help='shape parameter of window function (required for kaiser and tukey windows)')
     other_title.add_argument('--fft-overlap', metavar='PERCENT', type=float, default=50,
                              help='Welch\'s method overlap between segments (default: %(default)s)')
+    other_title.add_argument('--random', action='store_true',
+                             help='randomly shuffle frequency hops')
 
     return parser
 
@@ -370,7 +372,7 @@ def main():
         remove_dc=args.remove_dc, detrend=args.detrend if args.detrend != 'none' else None,
         lnb_lo=args.lnb_lo, tune_delay=args.tune_delay, reset_stream=args.reset_stream,
         base_buffer_size=args.buffer_size, max_buffer_size=args.max_buffer_size,
-        max_threads=args.max_threads, max_queue_size=args.max_queue_size
+        max_threads=args.max_threads, max_queue_size=args.max_queue_size, random_hops=args.random
     )
 
 

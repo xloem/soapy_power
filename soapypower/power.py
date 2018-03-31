@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, time, datetime, math, logging, signal
+import sys, time, datetime, math, logging, signal, random, os
 
 import numpy
 import simplesoapy
@@ -271,7 +271,7 @@ class SoapyPower:
 
         return (psd_future, acq_time_start, acq_time_stop)
 
-    def sweep(self, min_freq, max_freq, bins, repeats, runs=0, time_limit=0, overlap=0,
+    def sweep(self, min_freq, max_freq, bins, repeats, runs=0, time_limit=0, overlap=0, random_hops=False,
               fft_window='hann', fft_overlap=0.5, crop=False, log_scale=True, remove_dc=False, detrend=None, lnb_lo=0,
               tune_delay=0, reset_stream=False, base_buffer_size=0, max_buffer_size=0, max_threads=0, max_queue_size=0):
         """Sweep spectrum using frequency hopping"""
@@ -282,8 +282,13 @@ class SoapyPower:
             reset_stream=reset_stream, max_threads=max_threads, max_queue_size=max_queue_size
         )
 
+        if random_hops:
+            random.seed(os.urandom(16))
+
         try:
             freq_list = self.freq_plan(min_freq - lnb_lo, max_freq - lnb_lo, bins, overlap)
+            if random:
+                random.shuffle(freq_list)
             t_start = time.time()
             run = 0
             while not _shutdown and (runs == 0 or run < runs):
