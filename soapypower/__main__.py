@@ -271,6 +271,8 @@ def setup_argument_parser():
                              help='shape parameter of window function (required for kaiser and tukey windows)')
     other_title.add_argument('--fft-overlap', metavar='PERCENT', type=float, default=50,
                              help='Welch\'s method overlap between segments (default: %(default)s)')
+    other_title.add_argument('--magnitude', action='store_true',
+                             help='use the real IQ signal magnitude rather than the complex value')
 
     return parser
 
@@ -320,7 +322,7 @@ def main():
             channel=args.channel, antenna=args.antenna, settings=args.device_settings,
             force_sample_rate=args.force_rate, force_bandwidth=args.force_bandwidth,
             output=args.output_fd if args.output_fd is not None else args.output,
-            output_format=args.format
+            output_format=args.format, magnitude=args.magnitude
         )
         logger.info('Using device: {}'.format(sdr.device.hardware))
     except RuntimeError:

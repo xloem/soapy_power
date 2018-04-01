@@ -14,12 +14,13 @@ class PSD:
     """Compute averaged power spectral density using Welch's method"""
     def __init__(self, bins, sample_rate, fft_window='hann', fft_overlap=0.5,
                  crop_factor=0, log_scale=True, remove_dc=False, detrend=None,
-                 lnb_lo=0, max_threads=0, max_queue_size=0):
+                 lnb_lo=0, max_threads=0, max_queue_size=0, magnitude=False):
         self._bins = bins
         self._sample_rate = sample_rate
         self._fft_window = fft_window
         self._fft_overlap = fft_overlap
         self._fft_overlap_bins = math.floor(self._bins * self._fft_overlap)
+        self._magnitude = magnitude
         self._crop_factor = crop_factor
         self._log_scale = log_scale
         self._remove_dc = remove_dc
@@ -79,6 +80,8 @@ class PSD:
 
     def update(self, psd_state, samples_array):
         """Compute PSD from samples and update average for given center frequency"""
+        if self._magnitude:
+            samples_array = numpy.abs(samples_array)
         freq_array, pwr_array = simplespectral.welch(samples_array, self._sample_rate, nperseg=self._bins,
                                                      window=self._fft_window, noverlap=self._fft_overlap_bins,
                                                      detrend=self._detrend)

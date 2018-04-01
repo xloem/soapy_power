@@ -30,7 +30,7 @@ class SoapyPower:
     """SoapySDR spectrum analyzer"""
     def __init__(self, soapy_args='', sample_rate=2.00e6, bandwidth=0, corr=0, gain=20.7,
                  auto_gain=False, channel=0, antenna='', settings=None,
-                 force_sample_rate=False, force_bandwidth=False,
+                 force_sample_rate=False, force_bandwidth=False, magnitude=False,
                  output=sys.stdout, output_format='rtl_power'):
         self.device = simplesoapy.SoapyDevice(
             soapy_args=soapy_args, sample_rate=sample_rate, bandwidth=bandwidth, corr=corr,
@@ -40,6 +40,7 @@ class SoapyPower:
 
         self._output = output
         self._output_format = output_format
+        self._magnitude = magnitude
 
         self._buffer = None
         self._buffer_repeats = None
@@ -191,7 +192,7 @@ class SoapyPower:
         self._reset_stream = reset_stream
         self._psd = psd.PSD(bins, self.device.sample_rate, fft_window=fft_window, fft_overlap=fft_overlap,
                             crop_factor=crop_factor, log_scale=log_scale, remove_dc=remove_dc, detrend=detrend,
-                            lnb_lo=lnb_lo, max_threads=max_threads, max_queue_size=max_queue_size)
+                            lnb_lo=lnb_lo, max_threads=max_threads, max_queue_size=max_queue_size, magnitude=self._magnitude)
         self._writer = writer.formats[self._output_format](self._output)
 
     def stop(self):
