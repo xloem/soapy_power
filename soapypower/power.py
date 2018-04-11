@@ -105,7 +105,7 @@ class SoapyPower:
         freq_range = max_freq - min_freq
         hopping = True if freq_range >= sample_rate_crop else False
         hop_size = self.nearest_freq(sample_rate_crop, bin_size)
-        hops = math.ceil(freq_range / hop_size) if hopping else 1
+        hops = math.floor(freq_range / hop_size) if hopping else 1
         min_center_freq = min_freq + (hop_size / 2) if hopping else min_freq + (freq_range / 2)
         max_center_freq = min_center_freq + ((hops - 1) * hop_size)
 
